@@ -7,7 +7,13 @@ import io
 from services.data_loader import load_dataset
 from services.eda_engine import run_eda
 from services.insights_engine import generate_insights
+from components.sidebar import display_sidebar
 
+from services.data_cleaning import (
+    remove_duplicate_rows,
+    handle_missing_values,
+    get_cleaning_summary,
+)
 from components.dashboard import (
     display_overview,
     display_missing_values,
@@ -113,6 +119,39 @@ try:
 except ValueError as error:
     st.error(str(error))
     st.stop()
+
+# -------------------------------
+# SIDEBAR OPTIONS
+# -------------------------------
+
+sidebar_options = display_sidebar()
+
+# Keep a copy of the original dataset for comparison
+original_df = df.copy()
+
+# -------------------------------
+# DATA CLEANING
+# -------------------------------
+
+missing_strategy = sidebar_options["missing_strategy"]
+
+if missing_strategy != "None":
+    strategy_map = {
+        "Drop Rows": "drop",
+        "Mean": "mean",
+        "Median": "median",
+        "Mode": "mode",
+    }
+
+    df = handle_missing_values(
+        df,
+        strategy=strategy_map[missing_strategy]
+    )
+
+if sidebar_options["remove_duplicates"]:
+    df = remove_duplicate_rows(df)
+
+cleaning_summary = get_cleaning_summary(original_df, df)
 
 # -------------------------------
 # RUN EXPLORATORY DATA ANALYSIS
