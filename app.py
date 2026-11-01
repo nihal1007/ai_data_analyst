@@ -5,6 +5,13 @@ import plotly.express as px
 import io
 
 from services.data_loader import load_dataset
+from services.eda_engine import run_eda
+from services.insights_engine import generate_insights
+
+from services.statistical_analysis import (
+    get_statistical_summary,
+    get_correlation_matrix,
+)
 
 # -------------------------------
 # PAGE CONFIGURATION
@@ -96,6 +103,15 @@ except ValueError as error:
     st.stop()
 
 # -------------------------------
+# RUN EXPLORATORY DATA ANALYSIS
+# -------------------------------
+
+eda_results = run_eda(df)
+statistical_summary = get_statistical_summary(df)
+correlation_matrix = get_correlation_matrix(df)
+insights = generate_insights(df)
+
+# -------------------------------
 # DATASET OVERVIEW
 # -------------------------------
 
@@ -114,7 +130,7 @@ col4.metric("Duplicate Rows", f"{int(df.duplicated().sum()):,}")
 
 st.subheader("Dataset Preview")
 
-st.dataframe(df.head(100), use_container_width=True)
+st.dataframe(df.head(100), width="stretch")
 
 # -------------------------------
 # DATA TYPES
@@ -131,20 +147,18 @@ with st.expander("View column data types"):
         "Unique Values": df.nunique(dropna=True).values
     })
 
-    st.dataframe(dtypes_df, use_container_width=True)
+    st.dataframe(dtypes_df, width="stretch")
 
 # -------------------------------
 # STATISTICAL SUMMARY
 # -------------------------------
-
+numeric_df = df.select_dtypes(include=np.number)
 st.header("Statistical Summary")
 
-numeric_df = df.select_dtypes(include=np.number)
-
-if not numeric_df.empty:
+if not statistical_summary.empty:
     st.dataframe(
-        numeric_df.describe().T.round(2),
-        use_container_width=True
+        statistical_summary,
+        width="stretch"
     )
 else:
     st.info("No numerical columns were detected.")
@@ -168,7 +182,7 @@ missing_df = missing_df[
 ]
 
 if not missing_df.empty:
-    st.dataframe(missing_df, use_container_width=True)
+    st.dataframe(missing_df, width="stretch")
 
     fig_missing = px.bar(
         missing_df,
@@ -177,7 +191,7 @@ if not missing_df.empty:
         title="Missing Values by Column"
     )
 
-    st.plotly_chart(fig_missing, use_container_width=True)
+    st.plotly_chart(fig_missing, width="stretch")
 else:
     st.success("No missing values were detected.")
 
@@ -203,7 +217,7 @@ if not numeric_df.empty:
             labels={"x": selected_column, "y": "Frequency"}
         )
 
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, width="stretch")
 
         fig_box = px.box(
             y=valid_values,
@@ -211,7 +225,7 @@ if not numeric_df.empty:
             labels={"y": selected_column}
         )
 
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, width="stretch")
     else:
         st.info("This column contains no valid numerical values.")
 
@@ -221,11 +235,9 @@ if not numeric_df.empty:
 
 st.header("Correlation Analysis")
 
-if numeric_df.shape[1] >= 2:
-    correlation = numeric_df.corr()
-
+if not correlation_matrix.empty:
     fig_corr = px.imshow(
-        correlation,
+        correlation_matrix,
         text_auto=".2f",
         aspect="auto",
         title="Correlation Heatmap",
@@ -234,8 +246,10 @@ if numeric_df.shape[1] >= 2:
         zmax=1
     )
 
-    st.plotly_chart(fig_corr, use_container_width=True)
-
+    st.plotly_chart(
+        fig_corr,
+        width="stretch"
+    )
 else:
     st.info(
         "At least two numerical columns are required "
@@ -252,46 +266,17 @@ st.write(
     "These observations are calculated from the uploaded dataset."
 )
 
-st.markdown(f"- The dataset contains **{len(df):,} rows** "
-            f"and **{len(df.columns):,} columns**.")
-
-missing_total = int(df.isna().sum().sum())
-duplicate_total = int(df.duplicated().sum())
-
-if missing_total:
-    st.markdown(
-        f"- **{missing_total:,} missing cells** were detected. "
-        "Investigate their causes before deciding how to handle them."
-    )
+if insights:
+    for insight in insights:
+        st.markdown(f"- {insight}")
 else:
-    st.markdown("- No missing cells were detected.")
-
-if duplicate_total:
-    st.markdown(
-        f"- **{duplicate_total:,} duplicate rows** were detected. "
-        "Review them before deciding whether to remove them."
-    )
-else:
-    st.markdown("- No duplicate rows were detected.")
-
-if not numeric_df.empty:
-    for column in numeric_df.columns:
-        series = numeric_df[column].dropna()
-
-        if series.empty:
-            continue
-
-        st.markdown(
-            f"- **{column}:** mean = {series.mean():,.2f}, "
-            f"median = {series.median():,.2f}, "
-            f"minimum = {series.min():,.2f}, "
-            f"maximum = {series.max():,.2f}."
-        )
+    st.info("No insights are available for this dataset.")
 
 # -------------------------------
 # DOWNLOAD ANALYSIS
 # -------------------------------
-
+missing_total = int(df.isna().sum().sum())
+duplicate_total = int(df.duplicated().sum())
 st.header("Download Analysis")
 
 report = io.StringIO()

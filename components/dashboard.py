@@ -26,7 +26,7 @@ def display_missing_values(missing_values):
         st.info("No columns found.")
         return
 
-    st.dataframe(missing_values, use_container_width=True)
+    st.dataframe(missing_values, width="stretch")
 
 def display_numeric_summary(summary):
     """Display descriptive statistics."""
@@ -37,7 +37,7 @@ def display_numeric_summary(summary):
         st.info("No numerical columns available.")
         return
 
-    st.dataframe(summary, use_container_width=True)
+    st.dataframe(summary, width="stretch")
 
 def display_insights(insights):
     """Display automatically generated insights."""
@@ -75,13 +75,13 @@ def display_visualizations(df):
         with col1:
             st.plotly_chart(
                 create_histogram(df, selected_column),
-                use_container_width=True,
+                width="stretch",
             )
 
         with col2:
             st.plotly_chart(
                 create_box_plot(df, selected_column),
-                use_container_width=True,
+                width="stretch",
             )
 
     except ValueError as error:
@@ -92,7 +92,7 @@ def display_visualizations(df):
     if heatmap is not None:
         st.plotly_chart(
             heatmap,
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st.info(
