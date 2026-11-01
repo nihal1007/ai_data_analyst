@@ -69,3 +69,61 @@ def get_cleaning_summary(original_df, cleaned_df):
         ),
         "remaining_duplicates": int(cleaned_df.duplicated().sum()),
     }
+def handle_missing_values_by_type(
+    df,
+    numeric_strategy="none",
+    categorical_strategy="none"
+    ):
+    import pandas as pd
+
+    cleaned_df = df.copy()
+
+    numeric_columns = cleaned_df.select_dtypes(
+        include="number"
+    ).columns
+
+    categorical_columns = cleaned_df.select_dtypes(
+        exclude="number"
+    ).columns
+
+    # Handle numerical columns
+    if numeric_strategy == "drop":
+        cleaned_df = cleaned_df.dropna(
+            subset=list(numeric_columns)
+        )
+
+    elif numeric_strategy in ["mean", "median", "mode"]:
+        for column in numeric_columns:
+            if cleaned_df[column].isna().any():
+                if numeric_strategy == "mean":
+                    fill_value = cleaned_df[column].mean()
+                elif numeric_strategy == "median":
+                    fill_value = cleaned_df[column].median()
+                else:
+                    modes = cleaned_df[column].mode()
+                    if modes.empty:
+                        continue
+                    fill_value = modes.iloc[0]
+
+                if pd.notna(fill_value):
+                    cleaned_df[column] = cleaned_df[column].fillna(
+                        fill_value
+                    )
+
+    # Handle categorical and text columns
+    if categorical_strategy == "drop":
+        cleaned_df = cleaned_df.dropna(
+            subset=list(categorical_columns)
+        )
+
+    elif categorical_strategy == "mode":
+        for column in categorical_columns:
+            if cleaned_df[column].isna().any():
+                modes = cleaned_df[column].mode(dropna=True)
+
+                if not modes.empty:
+                    cleaned_df[column] = cleaned_df[column].fillna(
+                        modes.iloc[0]
+                    )
+
+    return cleaned_df

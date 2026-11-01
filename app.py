@@ -12,6 +12,7 @@ from components.sidebar import display_sidebar
 from services.data_cleaning import (
     remove_duplicate_rows,
     handle_missing_values,
+    handle_missing_values_by_type,
     get_cleaning_summary,
 )
 from components.dashboard import (
@@ -133,25 +134,31 @@ original_df = df.copy()
 # DATA CLEANING
 # -------------------------------
 
-missing_strategy = sidebar_options["missing_strategy"]
-
-if missing_strategy != "None":
-    strategy_map = {
-        "Drop Rows": "drop",
-        "Mean": "mean",
-        "Median": "median",
-        "Mode": "mode",
-    }
-
-    df = handle_missing_values(
-        df,
-        strategy=strategy_map[missing_strategy]
-    )
+df = handle_missing_values_by_type(
+    df,
+    numeric_strategy=sidebar_options["numeric_strategy"].lower(),
+    categorical_strategy=sidebar_options["categorical_strategy"].lower(),
+)
 
 if sidebar_options["remove_duplicates"]:
     df = remove_duplicate_rows(df)
 
 cleaning_summary = get_cleaning_summary(original_df, df)
+
+# -------------------------------
+# DOWNLOAD CLEANED DATASET
+# -------------------------------
+
+st.subheader("📥 Download Cleaned Dataset")
+
+cleaned_csv = df.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download Cleaned CSV",
+    data=cleaned_csv,
+    file_name="cleaned_dataset.csv",
+    mime="text/csv",
+)
 
 # -------------------------------
 # DATA-CLEANING RESULTS
