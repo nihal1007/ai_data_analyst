@@ -8,9 +8,21 @@ from services.data_loader import load_dataset
 from services.eda_engine import run_eda
 from services.insights_engine import generate_insights
 
+from components.dashboard import (
+    display_overview,
+    display_missing_values,
+    display_numeric_summary,
+    display_insights,
+    display_visualizations,
+)
 from services.statistical_analysis import (
     get_statistical_summary,
     get_correlation_matrix,
+)
+from components.charts import (
+    create_histogram,
+    create_box_plot,
+    create_correlation_heatmap,
 )
 
 # -------------------------------
@@ -115,14 +127,7 @@ insights = generate_insights(df)
 # DATASET OVERVIEW
 # -------------------------------
 
-st.header("Dataset Overview")
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("Total Rows", f"{df.shape[0]:,}")
-col2.metric("Total Columns", f"{df.shape[1]:,}")
-col3.metric("Missing Cells", f"{int(df.isna().sum().sum()):,}")
-col4.metric("Duplicate Rows", f"{int(df.duplicated().sum()):,}")
+display_overview(eda_results["overview"])
 
 # -------------------------------
 # DATA PREVIEW
@@ -152,48 +157,14 @@ with st.expander("View column data types"):
 # -------------------------------
 # STATISTICAL SUMMARY
 # -------------------------------
-numeric_df = df.select_dtypes(include=np.number)
-st.header("Statistical Summary")
-
-if not statistical_summary.empty:
-    st.dataframe(
-        statistical_summary,
-        width="stretch"
-    )
-else:
-    st.info("No numerical columns were detected.")
+numeric_df = df.select_dtypes(include="number")
+display_numeric_summary(statistical_summary)
 
 # -------------------------------
 # MISSING VALUE ANALYSIS
 # -------------------------------
 
-st.header("Missing Value Analysis")
-
-missing_df = pd.DataFrame({
-    "Column": df.columns.astype(str),
-    "Missing Values": df.isna().sum().values,
-    "Missing Percentage": (
-        df.isna().mean().mul(100).round(2).values
-    )
-})
-
-missing_df = missing_df[
-    missing_df["Missing Values"] > 0
-]
-
-if not missing_df.empty:
-    st.dataframe(missing_df, width="stretch")
-
-    fig_missing = px.bar(
-        missing_df,
-        x="Column",
-        y="Missing Values",
-        title="Missing Values by Column"
-    )
-
-    st.plotly_chart(fig_missing, width="stretch")
-else:
-    st.success("No missing values were detected.")
+display_missing_values(eda_results["missing_values"])
 
 # -------------------------------
 # NUMERICAL DISTRIBUTIONS
@@ -201,51 +172,57 @@ else:
 
 st.header("Numerical Data Visualization")
 
-if not numeric_df.empty:
+numeric_columns = df.select_dtypes(
+    include=np.number
+).columns.tolist()
+
+if numeric_columns:
     selected_column = st.selectbox(
         "Choose a numerical column",
-        numeric_df.columns.tolist()
+        numeric_columns
     )
 
-    valid_values = numeric_df[selected_column].dropna()
+    try:
+        col1, col2 = st.columns(2)
 
-    if not valid_values.empty:
-        fig_hist = px.histogram(
-            x=valid_values,
-            nbins=30,
-            title=f"Distribution of {selected_column}",
-            labels={"x": selected_column, "y": "Frequency"}
-        )
+        with col1:
+            fig_hist = create_histogram(
+                df,
+                selected_column
+            )
 
-        st.plotly_chart(fig_hist, width="stretch")
+            st.plotly_chart(
+                fig_hist,
+                width="stretch"
+            )
 
-        fig_box = px.box(
-            y=valid_values,
-            title=f"Box Plot of {selected_column}",
-            labels={"y": selected_column}
-        )
+        with col2:
+            fig_box = create_box_plot(
+                df,
+                selected_column
+            )
 
-        st.plotly_chart(fig_box, width="stretch")
-    else:
-        st.info("This column contains no valid numerical values.")
+            st.plotly_chart(
+                fig_box,
+                width="stretch"
+            )
 
+    except ValueError as error:
+        st.warning(str(error))
+
+else:
+    st.info(
+        "No numerical columns are available for visualization."
+    )
 # -------------------------------
 # CORRELATION ANALYSIS
 # -------------------------------
 
 st.header("Correlation Analysis")
 
-if not correlation_matrix.empty:
-    fig_corr = px.imshow(
-        correlation_matrix,
-        text_auto=".2f",
-        aspect="auto",
-        title="Correlation Heatmap",
-        color_continuous_scale="RdBu_r",
-        zmin=-1,
-        zmax=1
-    )
+fig_corr = create_correlation_heatmap(df)
 
+if fig_corr is not None:
     st.plotly_chart(
         fig_corr,
         width="stretch"
@@ -255,22 +232,11 @@ else:
         "At least two numerical columns are required "
         "for correlation analysis."
     )
-
 # -------------------------------
 # AUTOMATIC INSIGHTS
 # -------------------------------
 
-st.header("💡 Automatic Data Insights")
-
-st.write(
-    "These observations are calculated from the uploaded dataset."
-)
-
-if insights:
-    for insight in insights:
-        st.markdown(f"- {insight}")
-else:
-    st.info("No insights are available for this dataset.")
+display_insights(insights)
 
 # -------------------------------
 # DOWNLOAD ANALYSIS
