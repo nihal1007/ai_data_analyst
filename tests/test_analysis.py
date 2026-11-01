@@ -3,6 +3,10 @@ import pandas as pd
 
 from services.eda_engine import run_eda
 
+from services.statistical_analysis import (
+    get_statistical_summary,
+    get_correlation_matrix,
+)
 from services.analysis import (
 get_dataset_overview,
 get_missing_values,
@@ -58,3 +62,14 @@ class TestDataAnalysis(unittest.TestCase):
         self.assertIn("numeric_summary", result)
         self.assertIn("numeric_columns", result)
         self.assertEqual(result["overview"]["rows"], 3)
+    def test_statistical_summary(self):
+        result = get_statistical_summary(self.df)
+        self.assertIn("mean", result.columns)
+        self.assertIn("median", result.columns)
+        self.assertEqual(result.loc["Marks", "mean"], 80)
+
+    def test_correlation_matrix(self):
+        result = get_correlation_matrix(self.df)
+        self.assertIn("Marks", result.columns)
+        self.assertIn("Hours", result.columns)
+        self.assertEqual(result.shape, (2, 2))
