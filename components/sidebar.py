@@ -1,6 +1,5 @@
 import streamlit as st
 
-
 def display_sidebar():
     st.sidebar.title("DataMind AI")
     st.sidebar.markdown("---")
@@ -30,9 +29,22 @@ def display_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.subheader("Data Cleaning")
 
-    missing_strategy = st.sidebar.selectbox(
-        "Handle Missing Values",
-        ["None", "Drop Rows", "Mean", "Median", "Mode"]
+    # Numerical column handling
+    st.sidebar.markdown("**Numerical Columns**")
+
+    numeric_strategy = st.sidebar.selectbox(
+        "Fill numerical missing values",
+        ["None", "Mean", "Median", "Mode", "Drop Rows"],
+        key="numeric_strategy"
+    )
+
+    # Categorical and text column handling
+    st.sidebar.markdown("**Categorical / Text Columns**")
+
+    categorical_strategy = st.sidebar.selectbox(
+        "Fill categorical missing values",
+        ["None", "Mode", "Drop Rows"],
+        key="categorical_strategy"
     )
 
     remove_duplicates = st.sidebar.checkbox(
@@ -45,6 +57,7 @@ def display_sidebar():
         "show_statistics": show_statistics,
         "show_visualizations": show_visualizations,
         "show_insights": show_insights,
-        "missing_strategy": missing_strategy,
+        "numeric_strategy": numeric_strategy,
+        "categorical_strategy": categorical_strategy,
         "remove_duplicates": remove_duplicates,
     }

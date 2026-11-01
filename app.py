@@ -154,6 +154,24 @@ if sidebar_options["remove_duplicates"]:
 cleaning_summary = get_cleaning_summary(original_df, df)
 
 # -------------------------------
+# DATA-CLEANING RESULTS
+# -------------------------------
+
+st.subheader("🧹 Data-Cleaning Results")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Original Rows", len(original_df))
+col2.metric("Cleaned Rows", len(df))
+col3.metric(
+    "Rows Removed",
+    len(original_df) - len(df)
+)
+
+st.write("Original dataset size:", original_df.shape)
+st.write("Cleaned dataset size:", df.shape)
+
+# -------------------------------
 # RUN EXPLORATORY DATA ANALYSIS
 # -------------------------------
 
